@@ -27,6 +27,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private readonly DispatcherTimer _saveTimer;
     private readonly DispatcherTimer _undoTimer;
     private readonly DispatcherTimer _statusTimer;
+    private readonly DispatcherTimer _passThroughHitTestTimer;
     private readonly Forms.NotifyIcon _trayIcon;
     private readonly Forms.ToolStripMenuItem _trayShowItem;
     private readonly Forms.ToolStripMenuItem _trayTopmostItem;
@@ -36,6 +37,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private HwndSource? _windowSource;
     private nint _windowHandle;
     private bool _isPassThrough;
+    private bool _nativePassThroughEnabled;
     private bool _allowExit;
     private bool _isLoaded;
     private System.Windows.Point _dragStart;
@@ -91,38 +93,55 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             StatusToast.Visibility = Visibility.Collapsed;
         };
 
-        _trayShowItem = new Forms.ToolStripMenuItem("Show keList");
-        _trayShowItem.Click += (_, _) => Dispatcher.Invoke(ShowAndActivate);
+        _passThroughHitTestTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(20)
+        };
+        _passThroughHitTestTimer.Tick += (_, _) => UpdatePassThroughHitTest();
 
-        _trayTopmostItem = new Forms.ToolStripMenuItem("Keep above other windows")
+        _trayShowItem = new Forms.ToolStripMenuItem("隐藏 keList");
+        _trayShowItem.Click += (_, _) => Dispatcher.Invoke(ToggleWindowVisibility);
+
+        _trayTopmostItem = new Forms.ToolStripMenuItem("保持窗口置顶")
         {
             CheckOnClick = true
         };
         _trayTopmostItem.Click += (_, _) => Dispatcher.Invoke(() => SetTopmost(_trayTopmostItem.Checked));
 
-        _trayPassThroughItem = new Forms.ToolStripMenuItem("Mouse pass-through")
+        _trayPassThroughItem = new Forms.ToolStripMenuItem("鼠标穿透")
         {
-            CheckOnClick = true
+            CheckOnClick = true,
+            ShortcutKeyDisplayString = "Ctrl + Alt + P"
         };
         _trayPassThroughItem.Click += (_, _) => Dispatcher.Invoke(() => SetPassThrough(_trayPassThroughItem.Checked));
 
-        _trayStartupItem = new Forms.ToolStripMenuItem("Start with Windows")
+        _trayStartupItem = new Forms.ToolStripMenuItem("开机启动")
         {
             CheckOnClick = true,
             Checked = StartupService.IsEnabled()
         };
         _trayStartupItem.Click += (_, _) => Dispatcher.Invoke(ToggleStartup);
 
-        var openDataItem = new Forms.ToolStripMenuItem("Open data folder");
+        var openDataItem = new Forms.ToolStripMenuItem("打开数据文件夹");
         openDataItem.Click += (_, _) => OpenDataDirectory();
 
-        var resetLayoutItem = new Forms.ToolStripMenuItem("Reset window layout");
+        var resetLayoutItem = new Forms.ToolStripMenuItem("重置窗口位置");
         resetLayoutItem.Click += (_, _) => Dispatcher.Invoke(ResetWindowLayout);
 
-        var exitItem = new Forms.ToolStripMenuItem("Exit");
+        var exitItem = new Forms.ToolStripMenuItem("退出");
         exitItem.Click += (_, _) => Dispatcher.Invoke(ExitApplication);
 
-        var trayMenu = new Forms.ContextMenuStrip();
+        var trayMenu = new Forms.ContextMenuStrip
+        {
+            BackColor = System.Drawing.Color.FromArgb(250, 250, 250),
+            ForeColor = System.Drawing.Color.FromArgb(28, 28, 28),
+            Font = new System.Drawing.Font("Microsoft YaHei UI", 10F),
+            Padding = new Forms.Padding(5, 7, 5, 7),
+            MinimumSize = new System.Drawing.Size(240, 0),
+            ShowCheckMargin = true,
+            ShowImageMargin = false,
+            Renderer = new TrayMenuRenderer()
+        };
         trayMenu.Items.AddRange(
         [
             _trayShowItem,
@@ -137,16 +156,34 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             exitItem
         ]);
 
+        foreach (Forms.ToolStripItem item in trayMenu.Items)
+        {
+            if (item is Forms.ToolStripMenuItem)
+            {
+                item.Padding = new Forms.Padding(10, 7, 12, 7);
+                item.Margin = new Forms.Padding(1, 1, 1, 1);
+            }
+            else if (item is Forms.ToolStripSeparator)
+            {
+                item.Margin = new Forms.Padding(0, 3, 0, 3);
+            }
+        }
+
+        _trayShowItem.Font = new System.Drawing.Font(
+            trayMenu.Font,
+            System.Drawing.FontStyle.Bold);
+
         _trayIcon = new Forms.NotifyIcon
         {
-            Icon = System.Drawing.SystemIcons.Application,
-            Text = "keList — for better",
+            Icon = TrayIconFactory.Create(),
+            Text = "keList · 桌面待办",
             ContextMenuStrip = trayMenu,
             Visible = true
         };
         _trayIcon.DoubleClick += (_, _) => Dispatcher.Invoke(ShowAndActivate);
 
         ApplyLoadedSettings();
+        UpdateEmptyState();
         Loaded += (_, _) =>
         {
             _isLoaded = true;
@@ -205,7 +242,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         Topmost = true;
         Topmost = _appData.Settings.IsTopmost;
         NewTodoTextBox.Focus();
-        _trayShowItem.Text = "Hide keList";
+        _trayShowItem.Text = "隐藏 keList";
     }
 
     private void ApplyLoadedSettings()
@@ -213,8 +250,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         var settings = _appData.Settings;
         Width = Math.Max(MinWidth, settings.Width);
         Height = Math.Max(MinHeight, settings.Height);
-        Opacity = Math.Clamp(settings.BackgroundOpacity, 0.4, 0.95);
-        OpacitySlider.Value = Opacity;
+        var backgroundOpacity = Math.Clamp(settings.BackgroundOpacity, 0.4, 0.95);
+        Opacity = 1;
+        ApplyBackgroundOpacity(backgroundOpacity);
+        OpacitySlider.Value = backgroundOpacity;
         SetTopmost(settings.IsTopmost);
         SetLocked(settings.IsLocked);
 
@@ -253,7 +292,6 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         _windowSource = HwndSource.FromHwnd(_windowHandle);
         _windowSource?.AddHook(WindowMessageHook);
 
-        NativeMethods.EnableAcrylic(_windowHandle);
         NativeMethods.RegisterHotKey(
             _windowHandle,
             TogglePassThroughHotkeyId,
@@ -287,7 +325,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         {
             PinButton.Opacity = enabled ? 1 : 0.48;
             PinButton.Background = enabled
-                ? new SolidColorBrush(System.Windows.Media.Color.FromArgb(24, 255, 255, 255))
+                ? new SolidColorBrush(System.Windows.Media.Color.FromArgb(18, 0, 0, 0))
                 : System.Windows.Media.Brushes.Transparent;
         }
 
@@ -309,36 +347,35 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             return;
         }
 
-        var extendedStyle = NativeMethods.GetWindowLongPtr(_windowHandle, NativeMethods.GwlExStyle).ToInt64();
+        _isPassThrough = enabled;
 
         if (enabled)
         {
-            extendedStyle |= NativeMethods.WsExTransparent | NativeMethods.WsExLayered;
+            _passThroughHitTestTimer.Start();
+            UpdatePassThroughHitTest();
         }
         else
         {
-            extendedStyle &= ~NativeMethods.WsExTransparent;
+            _passThroughHitTestTimer.Stop();
+            ApplyNativePassThrough(false);
         }
 
-        NativeMethods.SetWindowLongPtr(
-            _windowHandle,
-            NativeMethods.GwlExStyle,
-            new nint(extendedStyle));
-
-        _isPassThrough = enabled;
         _trayPassThroughItem.Checked = enabled;
+        PassThroughButton.ToolTip = enabled
+            ? "关闭鼠标穿透（Ctrl + Alt + P）"
+            : "开启鼠标穿透（Ctrl + Alt + P）";
         PassThroughButton.Opacity = enabled ? 1 : 0.58;
         PassThroughButton.Background = enabled
-            ? new SolidColorBrush(System.Windows.Media.Color.FromArgb(24, 255, 255, 255))
+            ? new SolidColorBrush(System.Windows.Media.Color.FromArgb(18, 0, 0, 0))
             : System.Windows.Media.Brushes.Transparent;
 
         if (enabled)
         {
-            ShowStatus("Mouse pass-through is on\nPress Ctrl + Alt + P or use the tray menu to turn it off", 4);
+            ShowStatus("鼠标穿透已开启\n顶部按钮仍可直接点击", 3);
         }
         else
         {
-            ShowStatus("Mouse pass-through is off", 2);
+            ShowStatus("鼠标穿透已关闭", 2);
             Activate();
         }
     }
@@ -355,12 +392,55 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         => SetTopmost(!Topmost);
 
     private void PassThroughButton_Click(object sender, RoutedEventArgs e)
-        => SetPassThrough(true);
+        => SetPassThrough(!_isPassThrough);
+
+    private void UpdatePassThroughHitTest()
+    {
+        if (!_isPassThrough || !IsVisible || TitleActionsPanel.ActualWidth <= 0)
+        {
+            return;
+        }
+
+        var cursor = Forms.Cursor.Position;
+        var cursorInWindow = PointFromScreen(new System.Windows.Point(cursor.X, cursor.Y));
+        var panelOrigin = TitleActionsPanel.TranslatePoint(new System.Windows.Point(0, 0), this);
+        var interactiveBounds = new Rect(
+            panelOrigin.X - 6,
+            panelOrigin.Y,
+            TitleActionsPanel.ActualWidth + 12,
+            TitleActionsPanel.ActualHeight);
+
+        ApplyNativePassThrough(!interactiveBounds.Contains(cursorInWindow));
+    }
+
+    private void ApplyNativePassThrough(bool enabled)
+    {
+        if (_windowHandle == nint.Zero || _nativePassThroughEnabled == enabled)
+        {
+            return;
+        }
+
+        var extendedStyle = NativeMethods.GetWindowLongPtr(_windowHandle, NativeMethods.GwlExStyle).ToInt64();
+        if (enabled)
+        {
+            extendedStyle |= NativeMethods.WsExTransparent | NativeMethods.WsExLayered;
+        }
+        else
+        {
+            extendedStyle &= ~NativeMethods.WsExTransparent;
+        }
+
+        NativeMethods.SetWindowLongPtr(
+            _windowHandle,
+            NativeMethods.GwlExStyle,
+            new nint(extendedStyle));
+        _nativePassThroughEnabled = enabled;
+    }
 
     private void MoreButton_Click(object sender, RoutedEventArgs e)
     {
         LockCheckBox.IsChecked = _appData.Settings.IsLocked;
-        OpacitySlider.Value = Opacity;
+        OpacitySlider.Value = _appData.Settings.BackgroundOpacity;
         MorePopup.IsOpen = true;
     }
 
@@ -383,9 +463,23 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             return;
         }
 
-        Opacity = Math.Clamp(e.NewValue, 0.4, 0.95);
-        _appData.Settings.BackgroundOpacity = Opacity;
+        var backgroundOpacity = Math.Clamp(e.NewValue, 0.4, 0.95);
+        ApplyBackgroundOpacity(backgroundOpacity);
+        _appData.Settings.BackgroundOpacity = backgroundOpacity;
         ScheduleSave();
+    }
+
+    private void ApplyBackgroundOpacity(double opacity)
+    {
+        if (RootPanel is null)
+        {
+            return;
+        }
+
+        var veilOpacity = Math.Clamp(opacity * 0.29, 0.09, 0.32);
+        var alpha = (byte)Math.Round(veilOpacity * byte.MaxValue);
+        RootPanel.Background = new SolidColorBrush(
+            System.Windows.Media.Color.FromArgb(alpha, 216, 216, 220));
     }
 
     private void AboutButton_Click(object sender, RoutedEventArgs e)
@@ -393,8 +487,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         MorePopup.IsOpen = false;
         System.Windows.MessageBox.Show(
             this,
-            "keList 0.1.0\nfor better\n\nA focused desktop todo list for Windows.\nLocal-first, private, and open source.",
-            "About keList",
+            "keList 0.2.1\n\n一款专注、高效的 Windows 桌面待办工具。\n数据仅保存在本地，保护隐私，并开放源代码。",
+            "关于 keList",
             MessageBoxButton.OK,
             MessageBoxImage.None);
     }
@@ -596,6 +690,17 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         ActiveItems.Refresh();
         CompletedItems.Refresh();
         CompletedCount = _items.Count(item => item.IsCompleted);
+        UpdateEmptyState();
+    }
+
+    private void UpdateEmptyState()
+    {
+        EmptyStateText.Visibility = _items.Count == 0
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+        CompletedExpander.Visibility = CompletedCount > 0
+            ? Visibility.Visible
+            : Visibility.Collapsed;
     }
 
     private void Window_StateChanged(object? sender, EventArgs e)
@@ -615,17 +720,29 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private void HideToTray()
     {
         Hide();
-        _trayShowItem.Text = "Show keList";
+        _trayShowItem.Text = "显示 keList";
 
         if (!_appData.Settings.HasShownTrayHint)
         {
             _trayIcon.ShowBalloonTip(
                 2500,
-                "keList is still running",
-                "Double-click the tray icon to bring it back.",
+                "keList 仍在运行",
+                "双击托盘图标即可重新打开。",
                 Forms.ToolTipIcon.Info);
             _appData.Settings.HasShownTrayHint = true;
             ScheduleSave();
+        }
+    }
+
+    private void ToggleWindowVisibility()
+    {
+        if (IsVisible)
+        {
+            HideToTray();
+        }
+        else
+        {
+            ShowAndActivate();
         }
     }
 
@@ -640,7 +757,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         catch (Exception exception)
         {
             _trayStartupItem.Checked = StartupService.IsEnabled();
-            ShowStatus($"Unable to update startup setting: {exception.Message}", 4);
+            ShowStatus($"无法更新开机启动设置：{exception.Message}", 4);
         }
     }
 
@@ -712,9 +829,12 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         }
 
         NativeMethods.UnregisterHotKey(_windowHandle, TogglePassThroughHotkeyId);
+        _passThroughHitTestTimer.Stop();
         _windowSource?.RemoveHook(WindowMessageHook);
+        var trayIconImage = _trayIcon.Icon;
         _trayIcon.Visible = false;
         _trayIcon.Dispose();
+        trayIconImage?.Dispose();
         await SaveNowAsync();
     }
 

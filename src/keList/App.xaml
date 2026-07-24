@@ -3,9 +3,9 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Application.Resources>
         <Style TargetType="ToolTip">
-            <Setter Property="Background" Value="#EF292929" />
-            <Setter Property="Foreground" Value="#F2FFFFFF" />
-            <Setter Property="BorderBrush" Value="#32FFFFFF" />
+            <Setter Property="Background" Value="#FAFFFFFF" />
+            <Setter Property="Foreground" Value="#E61A1A1A" />
+            <Setter Property="BorderBrush" Value="#24000000" />
             <Setter Property="Padding" Value="9,6" />
             <Setter Property="FontFamily" Value="Segoe UI" />
             <Setter Property="FontSize" Value="12" />

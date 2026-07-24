@@ -21,6 +21,9 @@ internal static class NativeMethods
     [DllImport("user32.dll", SetLastError = true)]
     public static extern bool UnregisterHotKey(nint hWnd, int id);
 
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern bool DestroyIcon(nint hIcon);
+
     [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")]
     private static extern nint GetWindowLongPtr64(nint hWnd, int nIndex);
 
@@ -50,7 +53,7 @@ internal static class NativeMethods
 
     public static void EnableAcrylic(nint handle)
     {
-        var enabled = 1;
+        var enabled = 0;
         DwmSetWindowAttribute(
             handle,
             DwmwaUseImmersiveDarkMode,

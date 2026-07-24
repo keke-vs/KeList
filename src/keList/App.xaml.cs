@@ -16,7 +16,7 @@ public partial class App : System.Windows.Application
         {
             CrashLogger.Write(args.Exception);
             System.Windows.MessageBox.Show(
-                $"keList encountered an unexpected error.\n\n{args.Exception.Message}",
+                $"keList 遇到意外错误。\n\n{args.Exception.Message}",
                 "keList",
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);
@@ -62,7 +62,7 @@ public partial class App : System.Windows.Application
         {
             CrashLogger.Write(exception);
             System.Windows.MessageBox.Show(
-                $"keList could not start.\n\n{exception.Message}",
+                $"keList 无法启动。\n\n{exception.Message}",
                 "keList",
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);

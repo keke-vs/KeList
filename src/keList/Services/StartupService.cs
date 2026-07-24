@@ -31,8 +31,8 @@ public static class StartupService
 
         if (enabled)
         {
-            var executablePath = Environment.ProcessPath
-                ?? throw new InvalidOperationException("Unable to determine executable path.");
+        var executablePath = Environment.ProcessPath
+            ?? throw new InvalidOperationException("无法确定程序路径。");
             key.SetValue(ValueName, $"\"{executablePath}\"");
             key.DeleteValue(LegacyValueName, false);
         }
