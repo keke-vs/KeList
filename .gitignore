@@ -1,0 +1,21 @@
+# Build output
+bin/
+obj/
+publish/
+
+# Local tooling and temporary files
+work/
+outputs/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+
+# Runtime data
+data.json
+data.backup.json
+
+# OS metadata
+Thumbs.db
+.DS_Store
