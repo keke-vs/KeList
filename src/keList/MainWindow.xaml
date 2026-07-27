@@ -12,7 +12,9 @@
         AllowsTransparency="True"
         Background="Transparent"
         Foreground="#E61A1A1A"
-        FontFamily="Segoe UI"
+        FontFamily="Microsoft YaHei UI"
+        TextOptions.TextFormattingMode="Display"
+        TextOptions.TextRenderingMode="Grayscale"
         ShowInTaskbar="False"
         SourceInitialized="Window_SourceInitialized"
         LocationChanged="Window_StateChanged"
@@ -35,9 +37,9 @@
         <SolidColorBrush x:Key="BorderBrush" Color="#38000000" />
         <DropShadowEffect x:Key="TextHalo"
                           Color="#FFFFFFFF"
-                          BlurRadius="3"
+                          BlurRadius="1.5"
                           ShadowDepth="0"
-                          Opacity="0.95" />
+                          Opacity="0.65" />
 
         <Style x:Key="TitleButtonStyle" TargetType="Button">
             <Setter Property="Width" Value="34" />
@@ -280,7 +282,7 @@
                         <Button x:Name="PinButton"
                                 Style="{StaticResource TitleButtonStyle}"
                                 Click="PinButton_Click"
-                                ToolTip="保持窗口置顶">
+                                ToolTip="?????????">
                             <Path Width="16"
                                   Height="16"
                                   Stretch="Uniform"
@@ -294,7 +296,7 @@
                         <Button x:Name="PassThroughButton"
                                 Style="{StaticResource TitleButtonStyle}"
                                 Click="PassThroughButton_Click"
-                                ToolTip="开启鼠标穿透（Ctrl + Alt + P）">
+                                ToolTip="???????????Ctrl + Alt + P??>
                             <Path Width="17"
                                   Height="17"
                                   Stretch="Uniform"
@@ -307,13 +309,13 @@
 
                         <Button Style="{StaticResource TitleButtonStyle}"
                                 Click="MoreButton_Click"
-                                ToolTip="更多">
-                            <TextBlock Text="•••" FontSize="14" Margin="0,-5,0,0" />
+                                ToolTip="???">
+                            <TextBlock Text="?????? FontSize="14" Margin="0,-5,0,0" />
                         </Button>
 
                         <Button Style="{StaticResource TitleButtonStyle}"
                                 Click="HideButton_Click"
-                                ToolTip="隐藏到托盘">
+                                ToolTip="????????>
                             <Path Width="14"
                                   Height="14"
                                   Stretch="Uniform"
@@ -361,20 +363,20 @@
 
                                 <TextBlock Grid.Column="2"
                                            x:Name="DragHandle"
-                                           Text="⠿"
+                                           Text="??
                                            FontSize="17"
                                            Foreground="{StaticResource SecondaryText}"
                                            Margin="8,0"
                                            VerticalAlignment="Center"
                                            Cursor="SizeAll"
                                            Opacity="0"
-                                           ToolTip="拖动排序" />
+                                           ToolTip="??????" />
 
                                 <Button Grid.Column="3"
                                         x:Name="DeleteButton"
                                         Style="{StaticResource IconButtonStyle}"
                                         Click="DeleteButton_Click"
-                                        ToolTip="删除"
+                                        ToolTip="???"
                                         Tag="{Binding}"
                                         Opacity="0"
                                         IsHitTestVisible="False">
@@ -417,7 +419,7 @@
                       Foreground="{StaticResource SecondaryText}">
                 <Expander.Header>
                     <TextBlock Effect="{StaticResource TextHalo}">
-                        <Run Text="已完成 " />
+                        <Run Text="?????" />
                         <Run Text="{Binding CompletedCount, Mode=OneWay}" />
                     </TextBlock>
                 </Expander.Header>
@@ -453,7 +455,7 @@
                                 <Button Grid.Column="2"
                                         Style="{StaticResource IconButtonStyle}"
                                         Click="DeleteButton_Click"
-                                        ToolTip="删除"
+                                        ToolTip="???"
                                         Tag="{Binding}">
                                     <Path Width="13"
                                           Height="15"
@@ -510,8 +512,8 @@
                     VerticalAlignment="Bottom"
                     Visibility="Collapsed">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                    <TextBlock Text="已删除" Foreground="{StaticResource SecondaryText}" VerticalAlignment="Center" />
-                    <Button Content="撤销"
+                    <TextBlock Text="????? Foreground="{StaticResource SecondaryText}" VerticalAlignment="Center" />
+                    <Button Content="???"
                             Margin="12,0,0,0"
                             Padding="7,2"
                             Foreground="{StaticResource PrimaryText}"
@@ -551,14 +553,14 @@
                         BorderThickness="1">
                     <StackPanel>
                         <CheckBox x:Name="LockCheckBox"
-                                  Content="锁定窗口位置和大小"
+                                  Content="??????????????
                                   Foreground="{StaticResource PrimaryText}"
                                   Padding="4,5"
                                   Click="LockCheckBox_Click" />
 
                         <Border Height="1" Background="#14000000" Margin="0,9" />
 
-                        <TextBlock Text="字体大小"
+                        <TextBlock Text="??????"
                                    Foreground="{StaticResource SecondaryText}"
                                    Margin="4,0,0,6" />
                         <Grid>
@@ -567,7 +569,7 @@
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="40" />
                             </Grid.ColumnDefinitions>
-                            <Button Content="−"
+                            <Button Content="??
                                     Style="{StaticResource TitleButtonStyle}"
                                     Click="DecreaseFontButton_Click" />
                             <TextBlock x:Name="FontSizeValue"
@@ -582,7 +584,7 @@
                                     Click="IncreaseFontButton_Click" />
                         </Grid>
 
-                        <TextBlock Text="背景透明度"
+                        <TextBlock Text="????????
                                    Foreground="{StaticResource SecondaryText}"
                                    Margin="4,12,0,4" />
                         <Slider x:Name="OpacitySlider"
@@ -594,7 +596,7 @@
 
                         <Border Height="1" Background="#14000000" Margin="0,12,0,8" />
 
-                        <Button Content="关于 keList"
+                        <Button Content="??? keList"
                                 HorizontalContentAlignment="Left"
                                 Foreground="{StaticResource PrimaryText}"
                                 Background="Transparent"

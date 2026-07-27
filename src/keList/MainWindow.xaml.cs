@@ -99,36 +99,47 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         };
         _passThroughHitTestTimer.Tick += (_, _) => UpdatePassThroughHitTest();
 
-        _trayShowItem = new Forms.ToolStripMenuItem("隐藏 keList");
+        _trayShowItem = new Forms.ToolStripMenuItem("??? keList");
         _trayShowItem.Click += (_, _) => Dispatcher.Invoke(ToggleWindowVisibility);
 
-        _trayTopmostItem = new Forms.ToolStripMenuItem("保持窗口置顶")
+        _trayTopmostItem = new Forms.ToolStripMenuItem("?????????")
         {
             CheckOnClick = true
         };
         _trayTopmostItem.Click += (_, _) => Dispatcher.Invoke(() => SetTopmost(_trayTopmostItem.Checked));
 
-        _trayPassThroughItem = new Forms.ToolStripMenuItem("鼠标穿透")
+        _trayPassThroughItem = new Forms.ToolStripMenuItem("???????)
         {
             CheckOnClick = true,
             ShortcutKeyDisplayString = "Ctrl + Alt + P"
         };
         _trayPassThroughItem.Click += (_, _) => Dispatcher.Invoke(() => SetPassThrough(_trayPassThroughItem.Checked));
 
-        _trayStartupItem = new Forms.ToolStripMenuItem("开机启动")
+        var startupEnabled = false;
+        try
+        {
+            startupEnabled = StartupService.Synchronize(_appData.Settings.StartWithWindows);
+            _appData.Settings.StartWithWindows = startupEnabled;
+        }
+        catch (Exception exception)
+        {
+            CrashLogger.Write($"Unable to synchronize startup registration: {exception}");
+        }
+
+        _trayStartupItem = new Forms.ToolStripMenuItem("???????)
         {
             CheckOnClick = true,
-            Checked = StartupService.IsEnabled()
+            Checked = startupEnabled
         };
         _trayStartupItem.Click += (_, _) => Dispatcher.Invoke(ToggleStartup);
 
-        var openDataItem = new Forms.ToolStripMenuItem("打开数据文件夹");
+        var openDataItem = new Forms.ToolStripMenuItem("???????????);
         openDataItem.Click += (_, _) => OpenDataDirectory();
 
-        var resetLayoutItem = new Forms.ToolStripMenuItem("重置窗口位置");
+        var resetLayoutItem = new Forms.ToolStripMenuItem("?????????");
         resetLayoutItem.Click += (_, _) => Dispatcher.Invoke(ResetWindowLayout);
 
-        var exitItem = new Forms.ToolStripMenuItem("退出");
+        var exitItem = new Forms.ToolStripMenuItem("????);
         exitItem.Click += (_, _) => Dispatcher.Invoke(ExitApplication);
 
         var trayMenu = new Forms.ContextMenuStrip
@@ -176,7 +187,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         _trayIcon = new Forms.NotifyIcon
         {
             Icon = TrayIconFactory.Create(),
-            Text = "keList · 桌面待办",
+            Text = "keList ? ??????",
             ContextMenuStrip = trayMenu,
             Visible = true
         };
@@ -242,7 +253,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         Topmost = true;
         Topmost = _appData.Settings.IsTopmost;
         NewTodoTextBox.Focus();
-        _trayShowItem.Text = "隐藏 keList";
+        _trayShowItem.Text = "??? keList";
     }
 
     private void ApplyLoadedSettings()
@@ -362,8 +373,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
         _trayPassThroughItem.Checked = enabled;
         PassThroughButton.ToolTip = enabled
-            ? "关闭鼠标穿透（Ctrl + Alt + P）"
-            : "开启鼠标穿透（Ctrl + Alt + P）";
+            ? "???????????Ctrl + Alt + P??
+            : "???????????Ctrl + Alt + P??;
         PassThroughButton.Opacity = enabled ? 1 : 0.58;
         PassThroughButton.Background = enabled
             ? new SolidColorBrush(System.Windows.Media.Color.FromArgb(18, 0, 0, 0))
@@ -371,11 +382,11 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
         if (enabled)
         {
-            ShowStatus("鼠标穿透已开启\n顶部按钮仍可直接点击", 3);
+            ShowStatus("????????????n???????????????", 3);
         }
         else
         {
-            ShowStatus("鼠标穿透已关闭", 2);
+            ShowStatus("???????????", 2);
             Activate();
         }
     }
@@ -487,8 +498,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         MorePopup.IsOpen = false;
         System.Windows.MessageBox.Show(
             this,
-            "keList 0.2.1\n\n一款专注、高效的 Windows 桌面待办工具。\n数据仅保存在本地，保护隐私，并开放源代码。",
-            "关于 keList",
+            "keList 0.2.1\n\n????????????? Windows ???????????n????????????????????????????????,
+            "??? keList",
             MessageBoxButton.OK,
             MessageBoxImage.None);
     }
@@ -720,14 +731,14 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private void HideToTray()
     {
         Hide();
-        _trayShowItem.Text = "显示 keList";
+        _trayShowItem.Text = "??? keList";
 
         if (!_appData.Settings.HasShownTrayHint)
         {
             _trayIcon.ShowBalloonTip(
                 2500,
-                "keList 仍在运行",
-                "双击托盘图标即可重新打开。",
+                "keList ??????",
+                "????????????????????,
                 Forms.ToolTipIcon.Info);
             _appData.Settings.HasShownTrayHint = true;
             ScheduleSave();
@@ -757,7 +768,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         catch (Exception exception)
         {
             _trayStartupItem.Checked = StartupService.IsEnabled();
-            ShowStatus($"无法更新开机启动设置：{exception.Message}", 4);
+            ShowStatus($"?????????????????{exception.Message}", 4);
         }
     }
 
