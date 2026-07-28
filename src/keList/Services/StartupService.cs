@@ -51,7 +51,7 @@ public static class StartupService
         if (enabled)
         {
             var executablePath = Environment.ProcessPath
-                ?? throw new InvalidOperationException("??????????????);
+                ?? throw new InvalidOperationException("无法确定程序路径。");
             var normalizedPath = Path.GetFullPath(executablePath);
             key.SetValue(ValueName, $"\"{normalizedPath}\"");
             key.DeleteValue(LegacyValueName, false);
